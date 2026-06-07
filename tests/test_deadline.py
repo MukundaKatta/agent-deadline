@@ -4,6 +4,7 @@ import time
 
 import pytest
 
+import agent_deadline
 from agent_deadline import Deadline, DeadlineExceeded
 
 # ---------- factories ----------
@@ -42,6 +43,26 @@ def test_constructor_directly_with_at_works():
     d = Deadline(at=target)
     assert d.at == target
     assert not d.is_expired()
+
+
+def test_is_never_false_for_finite_deadline():
+    assert not Deadline.from_now(5.0).is_never()
+    assert not Deadline(at=time.monotonic() + 1.0).is_never()
+
+
+def test_from_now_inf_behaves_like_never():
+    # `at` lands on math.inf, so the deadline reports as "never" and is
+    # treated as an infinite budget rather than an expired one.
+    d = Deadline.from_now(math.inf)
+    assert d.is_never()
+    assert not d.is_expired()
+    assert d.remaining_seconds() == math.inf
+    d.check_or_raise()  # must be a no-op
+
+
+def test_version_is_exposed():
+    assert isinstance(agent_deadline.__version__, str)
+    assert agent_deadline.__version__
 
 
 # ---------- is_expired ----------
